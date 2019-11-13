@@ -86,7 +86,7 @@ void updateAverage()
 void loop()
 {
   sensors.requestTemperatures();
-  lcd.clear();
+  //lcd.clear();
 
   temperature[count] = sensors.getTempFByIndex(0);
   
@@ -108,7 +108,8 @@ void loop()
     digitalWrite(RELAY, LOW);
     isOn = false;
   }
-
+  //lcd.clear();
+  lcd.setCursor(0,0);
   lcd.print("Temp: ");
   lcd.print(average);
   lcd.print(" F");
