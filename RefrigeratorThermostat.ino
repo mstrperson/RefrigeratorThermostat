@@ -76,11 +76,10 @@ void setup()
   
 }
 
-// 
+// average all the last 50 temperature readings
 void updateAverage()
 {
   float sum = 0;
-  float sum2 = 0;
   for(int i = 0; i < 50; i++)
   {
     sum += temperature[i];
