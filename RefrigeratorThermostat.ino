@@ -2,10 +2,11 @@
 #include <LiquidCrystal_I2C.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Thread.h>
+
 
 // DS18S20 is plugged into port 2
 #define ONE_WIRE_BUS 2
-
 
 #define LOW_END 30  //degrees F
 #define HIGH_END 45 //degrees F
@@ -16,6 +17,10 @@
 #define DELTA_T 3   // cycle the compressor at target + or - DELTA_T
 
 
+Thread displayCycle = Thread();
+int displayIndex = 0;
+#define CYCLE_INTERVAL 2000
+
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
@@ -24,11 +29,13 @@ DallasTemperature sensors(&oneWire);
 
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
-// take the average temperature over the past 50 readings to smooth out any anomalous readings.
-float temperature[50];
-float average = 0;
-int count = 0;
+DeviceAddress bottomThermometer = { 0x28, 0xAA, 0x3D, 0x0B, 0x55, 0x14, 0x01, 0xB6 };
+DeviceAddress topThermometer   = { 0x28, 0xAA, 0x7D, 0x13, 0x55, 0x14, 0x01, 0x7B };
 
+
+float topTemperature;
+float bottomTemperature;
+float avgTemp;
 float target = 36;  //target temperature
 
 bool isOn = false;
@@ -65,60 +72,67 @@ void setup()
   
   sensors.begin();
 
-  for(int i = 0; i < 50; i++)
-  {
-    sensors.requestTemperatures();
-    temperature[i] = sensors.getTempFByIndex(0);
-    delay(5);
-  }
+  displayCycle.onRun(cycleDisplay);
+  displayCycle.setInterval(CYCLE_INTERVAL);
 
-  updateAverage();
-  
 }
 
-// 
-void updateAverage()
+void cycleDisplay()
 {
-  float sum = 0;
-  float sum2 = 0;
-  for(int i = 0; i < 50; i++)
+  lcd.setCursor(0,0);
+  switch(displayIndex)
   {
-    sum += temperature[i];
+    case 0:   lcd.print("Top: ");
+              lcd.print(topTemperature);
+              lcd.print("F      ");
+              break;
+    case 1:   lcd.print("Bottom: ");
+              lcd.print(bottomTemperature);
+              lcd.print("F      ");
+              break;
+    case 2:   lcd.print("Avg: ");
+              lcd.print(avgTemp);
+              lcd.print("F      ");
+              break;
+    case 3:   lcd.print("Compressor ");
+              if(isOn) lcd.print("On");
+              else lcd.print("Off");
+              break;
+    default:  lcd.print("display error...");
+              break;
   }
-
-  average = sum / 50;
+  displayIndex++;
+  if(displayIndex > 3) displayIndex = 0;
 }
 
 void loop()
 {
   sensors.requestTemperatures();
 
-  temperature[count] = sensors.getTempFByIndex(0);
-  count++;
-  if(count==50) count = 0;
+  topTemperature = sensors.getTempF(topThermometer);
+  bottomTemperature = sensors.getTempF(bottomThermometer);
+  avgTemp = topTemperature + bottomTemperature;
+  avgTemp /= 2;
   
-  updateAverage();
   
   int aread = analogRead(POT);
   target = map_25inc(aread, 0, 1023, LOW_END, HIGH_END);
   
-  if(average > target + DELTA_T && !isOn)
+  if(avgTemp > target + DELTA_T && !isOn)
   {
     digitalWrite(RELAY, HIGH);
     isOn = true;
   }
 
-  if(average <= target - DELTA_T && isOn)
+  if(avgTemp <= target - DELTA_T && isOn)
   {
     digitalWrite(RELAY, LOW);
     isOn = false;
   }
 
+  if(displayCycle.shouldRun())
+    displayCycle.run();
   
-  lcd.setCursor(0,0);
-  lcd.print("Temp: ");
-  lcd.print(average);
-  lcd.print(" F");
   lcd.setCursor(0,1);
   lcd.print("Target: ");
   lcd.print(target);
