@@ -162,7 +162,7 @@ void cycleDisplay()
   if(displayIndex > 3) displayIndex = 0;
 }
 
-void loop()
+void checkTheDial()
 {
   static int pos = 0;
 
@@ -184,15 +184,15 @@ void loop()
     target = DEFAULT_TEMP + offTemp;
 #endif
   }
+}
 
+void loop()
+{
+  checkTheDial();
 
-  if(displayCycle.shouldRun())
-    displayCycle.run();
+  if(displayCycle.shouldRun()) displayCycle.run();
 
-  if(tempReadThread.shouldRun())
-    tempReadThread.run();
+  if(tempReadThread.shouldRun()) tempReadThread.run();
 
-  if(updateSecondLine.shouldRun())
-    updateSecondLine.run();
-  
+  if(updateSecondLine.shouldRun()) updateSecondLine.run();
 }
