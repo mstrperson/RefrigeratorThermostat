@@ -141,15 +141,15 @@ void cycleDisplay()
   {
     case 0:   lcd.print("Top: ");
               lcd.print(topTemperature);
-              lcd.print("F      ");
+              lcd.print(" F      ");
               break;
     case 1:   lcd.print("Bottom: ");
               lcd.print(bottomTemperature);
-              lcd.print("F      ");
+              lcd.print(" F      ");
               break;
     case 2:   lcd.print("Avg: ");
               lcd.print(avgTemp);
-              lcd.print("F      ");
+              lcd.print(" F      ");
               break;
     case 3:   lcd.print("Compressor ");
               if(isOn) lcd.print("On");
